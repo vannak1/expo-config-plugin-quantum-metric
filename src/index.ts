@@ -404,12 +404,13 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (
 };
 
 let pkg: { name: string; version?: string } = {
-  name: "react-native-quantum-metric",
+  name: "expo-config-plugin-quantum-metric",
+  version: "1.0.1"
 };
 try {
-  pkg = require("react-native-quantum-metric/package.json");
+  pkg = require("expo-config-plugin-quantum-metric/package.json");
 } catch {
-  console.warn("Failed to load package.json for react-native-quantum-metric");
+  console.warn("Failed to load package.json for expo-config-plugin-quantum-metric");
 }
 
 export default createRunOncePlugin(
