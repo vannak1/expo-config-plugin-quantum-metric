@@ -34,38 +34,41 @@ expo install expo-plugin-quantum-metric
 
    Add the plugin to your Expo config with your Quantum Metric subscription and UID:
 
-   ```json
-   {
-     "expo": {
-       "plugins": [
-         [
-           "expo-plugin-quantum-metric",
-           {
-             "subscription": "YOUR_SUBSCRIPTION_NAME",
-             "uid": "YOUR_UNIQUE_SDK_UID",
-             "browserName": "Optional Custom Browser Name",
-             "enableTestMode": false,
-             "disableCrashReporting": false,
-             "libraryPath": "vendor-config/quantum-metric",
-             "libraryVersion": "1.1.71"
-           }
-         ]
-       ]
-     }
-   }
-   ```
+Example configuration:
 
-   **Configuration Options:**
+```json
+{
+  "expo": {
+    "plugins": [
+      [
+        "expo-plugin-quantum-metric",
+        {
+          "subscription": "YOUR_SUBSCRIPTION_NAME",
+          "uid": "YOUR_UNIQUE_SDK_UID",
+          "browserName": "Optional Custom Browser Name",
+          "enableTestMode": false,
+          "disableCrashReporting": false,
+          "libraryPath": "vendor-config/quantum-metric",
+          "libraryVersion": "1.1.71",
+          "enableClangModules": true  // Enable if your SDK uses @import statements
+        }
+      ]
+    ]
+  }
+}
 
-   | Option | Type | Required | Default | Description |
-   |--------|------|----------|---------|-------------|
-   | `subscription` | String | Yes | - | Your Quantum Metric subscription name |
-   | `uid` | String | Yes | - | Your unique SDK UID |
-   | `browserName` | String | No | App Name | Custom browser name for better identification |
-   | `enableTestMode` | Boolean | No | `false` | Whether to enable test mode configuration |
-   | `disableCrashReporting` | Boolean | No | `false` | Whether to disable crash reporting (iOS only) |
-   | `libraryPath` | String | No | `"vendor-config/quantum-metric"` | Path to your Quantum Metric native libraries |
-   | `libraryVersion` | String | No | - | Version of the Quantum Metric SDK being used (affects iOS header imports) |
+   
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `subscription` | String | Yes | - | Your Quantum Metric subscription name |
+| `uid` | String | Yes | - | Your unique SDK UID |
+| `browserName` | String | No | App Name | Custom browser name for better identification |
+| `enableTestMode` | Boolean | No | `false` | Whether to enable test mode configuration |
+| `disableCrashReporting` | Boolean | No | `false` | Whether to disable crash reporting (iOS only) |
+| `libraryPath` | String | No | `"vendor-config/quantum-metric"` | Path to your Quantum Metric native libraries |
+| `libraryVersion` | String | No | - | Version of the Quantum Metric SDK being used (affects iOS header imports) |
+| `enableClangModules` | Boolean | No | `false` | Enable Clang modules in iOS build settings (required for `@import` statements) |
+
 
 3. **Rebuild your app**
 

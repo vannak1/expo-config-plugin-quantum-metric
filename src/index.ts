@@ -29,7 +29,8 @@ interface QuantumMetricPluginProps {
   enableTestMode?: boolean;
   disableCrashReporting?: boolean;
   libraryPath?: string;
-  libraryVersion?: string; // New optional parameter for version
+  libraryVersion?: string;
+  enableClangModules?: boolean; // New optional parameter
 }
 
 const DEFAULT_LIBRARY_PATH = "vendor-config/quantum-metric";
@@ -313,6 +314,35 @@ const withQuantumMetricIosAppDelegate: ConfigPlugin<QuantumMetricPluginProps> = 
   config.modResults.contents = appDelegate;
   return config;
 });
+
+/**
+ * iOS – Enable Clang modules in build settings when needed
+ */
+const withQuantumMetricIosModules: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
+  // Skip if enableClangModules is not true
+  if (!props.enableClangModules) {
+    return config;
+  }
+
+  return withXcodeProject(config, (config) => {
+    const project = config.modResults;
+    const configurations = project.pbxXCBuildConfigurationSection();
+    
+    for (const key in configurations) {
+      const configuration = configurations[key];
+      if (typeof configuration === "object" && configuration.buildSettings) {
+        // Enable modules
+        configuration.buildSettings["CLANG_ENABLE_MODULES"] = "YES";
+        
+        // Enable module imports in C++
+        configuration.buildSettings["CLANG_ENABLE_MODULE_DEBUGGING"] = "YES";
+        configuration.buildSettings["CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES"] = "YES";
+      }
+    }
+    return config;
+  });
+}
+
 /**
  * Android – Copy native .aar files (or folders) to the app/libs folder.
  */
@@ -422,6 +452,7 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (
   config = withQuantumMetricIosLibrary(config, props);
   config = withQuantumMetricIosFramework(config, props);
   config = withQuantumMetricIosLinkerFlags(config, props);
+  config = withQuantumMetricIosModules(config, props);
   config = withQuantumMetricIosAppDelegate(config, props);
   config = withQuantumMetricAndroidLibrary(config, props);
   config = withQuantumMetricGradle(config);
