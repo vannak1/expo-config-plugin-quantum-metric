@@ -46,7 +46,8 @@ expo install expo-plugin-quantum-metric
              "browserName": "Optional Custom Browser Name",
              "enableTestMode": false,
              "disableCrashReporting": false,
-             "libraryPath": "vendor-config/quantum-metric"
+             "libraryPath": "vendor-config/quantum-metric",
+             "libraryVersion": "1.1.71"
            }
          ]
        ]
@@ -64,6 +65,7 @@ expo install expo-plugin-quantum-metric
    | `enableTestMode` | Boolean | No | `false` | Whether to enable test mode configuration |
    | `disableCrashReporting` | Boolean | No | `false` | Whether to disable crash reporting (iOS only) |
    | `libraryPath` | String | No | `"vendor-config/quantum-metric"` | Path to your Quantum Metric native libraries |
+   | `libraryVersion` | String | No | - | Version of the Quantum Metric SDK being used (affects iOS header imports) |
 
 3. **Rebuild your app**
 
@@ -105,6 +107,7 @@ For advanced usage such as getting session cookies, sending errors, or handling 
 
 - **Framework not found**: Make sure the `.xcframework` file is correctly placed in the specified directory.
 - **Linking errors**: Verify that the `-ObjC` flag has been added to your project.
+- **Header import issues**: If you're seeing header import errors, verify that you've set the correct `libraryVersion`. For SDK versions 1.1.71 and above, the plugin uses `<QMNative/QMNative.h>`; for earlier versions, it uses `"QMNative.h"`.
 
 ### Android
 

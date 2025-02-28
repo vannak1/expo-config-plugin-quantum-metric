@@ -29,6 +29,7 @@ interface QuantumMetricPluginProps {
   enableTestMode?: boolean;
   disableCrashReporting?: boolean;
   libraryPath?: string;
+  libraryVersion?: string; // New optional parameter for version
 }
 
 const DEFAULT_LIBRARY_PATH = "vendor-config/quantum-metric";
@@ -90,87 +91,106 @@ const withQuantumMetricIosLibrary: ConfigPlugin<QuantumMetricPluginProps> = (
  * Uses IOSConfig.XcodeUtils helpers to properly add the framework to the project
  * with "Do Not Embed" setting.
  */
-const withQuantumMetricIosFramework: ConfigPlugin<QuantumMetricPluginProps> = 
+const withQuantumMetricIosFramework: ConfigPlugin<QuantumMetricPluginProps> =
   (config, props) => withXcodeProject(config, (config) => {
-  const { projectRoot } = config.modRequest;
-  const { projectName } = config.modRequest;
-  const libraryPath = props.libraryPath || DEFAULT_LIBRARY_PATH;
-  const sourceDir = path.join(projectRoot, libraryPath);
-  
-  if (existsSync(sourceDir)) {
-    // Find items ending with .xcframework (directories)
-    const items = readdirSync(sourceDir).filter(
-      (item) => path.extname(item) === ".xcframework"
-    );
-    
-    if (items.length > 0) {
-      const frameworkFileName = items[0];
-      const frameworkName = path.basename(
-        frameworkFileName,
-        path.extname(frameworkFileName)
+    const { projectRoot } = config.modRequest;
+    const { projectName } = config.modRequest;
+    const libraryPath = props.libraryPath || DEFAULT_LIBRARY_PATH;
+    const sourceDir = path.join(projectRoot, libraryPath);
+
+    if (existsSync(sourceDir)) {
+      // Find items ending with .xcframework (directories)
+      const items = readdirSync(sourceDir).filter(
+        (item) => path.extname(item) === ".xcframework"
       );
-      
-      const project = config.modResults;
-      
-      // Check if a file reference for this framework already exists
-      const fileReferences = project.pbxFileReferenceSection();
-      let alreadyAdded = false;
-      
-      for (const key in fileReferences) {
-        const ref = fileReferences[key];
-        if (ref && ref.path && ref.path.includes(frameworkFileName)) {
-          alreadyAdded = true;
-          break;
+
+      if (items.length > 0) {
+        const frameworkFileName = items[0];
+        const frameworkName = path.basename(
+          frameworkFileName,
+          path.extname(frameworkFileName)
+        );
+
+        const project = config.modResults;
+
+        // Check if a file reference for this framework already exists
+        const fileReferences = project.pbxFileReferenceSection();
+        let alreadyAdded = false;
+
+        for (const key in fileReferences) {
+          const ref = fileReferences[key];
+          if (ref && ref.path && ref.path.includes(frameworkFileName)) {
+            alreadyAdded = true;
+            break;
+          }
+        }
+
+        if (!alreadyAdded) {
+          console.log(`Adding framework ${frameworkName} to Xcode project...`);
+
+          // First add the framework file to the Frameworks group
+          const frameworkPath = `Frameworks/${frameworkFileName}`;
+
+          // Use the provided helper to add the file to the group
+          const fileRef = IOSConfig.XcodeUtils.addFileToGroupAndLink({
+            filepath: frameworkPath,
+            groupName: "Frameworks",
+            project,
+            verbose: true,
+            // Custom function to add the file with "Do Not Embed" setting
+            addFileToProject: ({ project, file }) => {
+              // Add the file reference to PBX file reference section
+              project.addToPbxFileReferenceSection(file);
+
+              // Create build file without embedding settings (equivalent to "Do Not Embed")
+              project.addToPbxBuildFileSection(file);
+
+              // Add to frameworks build phase but NOT to embed frameworks build phase
+              const target = project.getFirstTarget();
+              if (target) {
+                const frameworksBuildPhase = project.pbxFrameworksBuildPhaseObj(target.uuid);
+                if (frameworksBuildPhase) {
+                  project.addToPbxFrameworksBuildPhase(file);
+                } else {
+                  console.warn("Quantum Metric: No Frameworks build phase found in Xcode project.");
+                }
+              }
+            },
+          });
+
+          console.log(`Added ${frameworkFileName} to frameworks with "Do Not Embed" setting`);
+        } else {
+          console.log(`Framework ${frameworkName} already exists in Xcode project`);
         }
       }
-      
-      if (!alreadyAdded) {
-        console.log(`Adding framework ${frameworkName} to Xcode project...`);
-        
-        // First add the framework file to the Frameworks group
-        const frameworkPath = `Frameworks/${frameworkFileName}`;
-        
-        // Use the provided helper to add the file to the group
-        const fileRef = IOSConfig.XcodeUtils.addFileToGroupAndLink({
-          filepath: frameworkPath,
-          groupName: "Frameworks",
-          project,
-          verbose: true,
-          // Custom function to add the file with "Do Not Embed" setting
-          addFileToProject: ({ project, file }) => {
-            // Add the file reference to PBX file reference section
-            project.addToPbxFileReferenceSection(file);
-            
-            // Create build file without embedding settings (equivalent to "Do Not Embed")
-            project.addToPbxBuildFileSection(file);
-            
-            // Add to frameworks build phase but NOT to embed frameworks build phase
-            const target = project.getFirstTarget();
-            if (target) {
-              const frameworksBuildPhase = project.pbxFrameworksBuildPhaseObj(target.uuid);
-              if (frameworksBuildPhase) {
-                project.addToPbxFrameworksBuildPhase(file);
-              } else {
-                console.warn("Quantum Metric: No Frameworks build phase found in Xcode project.");
-              }
-            }
-          },
-        });
-        
-        console.log(`Added ${frameworkFileName} to frameworks with "Do Not Embed" setting`);
-      } else {
-        console.log(`Framework ${frameworkName} already exists in Xcode project`);
-      }
     }
+
+    return config;
+  });
+
+const isVersionGreaterOrEqual = (version: string | undefined, compareWith: string): boolean => {
+  if (!version) return false;
+  const v1 = version.split('.').map(Number);
+  const v2 = compareWith.split('.').map(Number);
+  for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
+    const num1 = v1[i] || 0;
+    const num2 = v2[i] || 0;
+    if (num1 > num2) return true;
+    if (num1 < num2) return false;
   }
-  
-  return config;
-});
+  return true;
+};
+
 /**
  * iOS – Ensure OTHER_LDFLAGS contains "-ObjC".
  */
-const withQuantumMetricIosLinkerFlags: ConfigPlugin = (config) =>
-  withXcodeProject(config, (config) => {
+const withQuantumMetricIosLinkerFlags: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
+  // Skip linker flags for versions above 1.1.66
+  if (isVersionGreaterOrEqual(props.libraryVersion, '1.1.66')) {
+    return config;
+  }
+
+  return withXcodeProject(config, (config) => {
     const project = config.modResults;
     const configurations = project.pbxXCBuildConfigurationSection;
     for (const key in configurations) {
@@ -186,6 +206,7 @@ const withQuantumMetricIosLinkerFlags: ConfigPlugin = (config) =>
     }
     return config;
   });
+}
 
 /**
  * iOS – Modify AppDelegate to initialize Quantum Metric SDK.
@@ -196,37 +217,37 @@ const withQuantumMetricIosLinkerFlags: ConfigPlugin = (config) =>
  * Following the Quantum Metric SDK integration guide for proper initialization.
  */
 const withQuantumMetricIosAppDelegate: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => withAppDelegate(config, (config) => {
-  const { subscription, uid, browserName, enableTestMode, disableCrashReporting } = props;
+  const { subscription, uid, browserName, enableTestMode, disableCrashReporting, libraryVersion } = props;
   let appDelegate = config.modResults.contents;
   const isSwift = config.modResults.path && config.modResults.path.endsWith(".swift");
-  
+
   if (isSwift) {
     // Step 2A - Importing for Swift
     if (!appDelegate.includes("import QMNative")) {
       appDelegate = appDelegate.replace(/(import UIKit\s*\n)/, "$1import QMNative\n");
     }
-    
+
     // Step 2B - Initialization for Swift
     if (!appDelegate.includes("QMNative.initialize")) {
       const didFinishRegex = /(func\s+application\([^)]*didFinishLaunchingWithOptions[^)]*\)\s*->\s*Bool\s*\{)/;
-      
+
       // Create initialization code according to documentation
       let initCode = `\n        // Initialize Quantum Metric\n        QMNative.initialize(withSubscription: "${subscription}", uid: "${uid}")`;
-      
+
       // Optional: Browser Name
       if (browserName) {
         initCode += `\n        QMNative.setBrowserString("${browserName}")`;
       }
-      
+
       // Additional optional settings
       if (disableCrashReporting) {
         initCode += `\n        QMNative.disableCrashReporting()`;
       }
-      
+
       if (enableTestMode) {
         initCode += `\n        QMNative.sharedInstance().enableTestConfig(true)`;
       }
-      
+
       // Add initialization to didFinishLaunchingWithOptions
       if (!didFinishRegex.test(appDelegate)) {
         console.warn("Quantum Metric: didFinishLaunchingWithOptions not found in Swift AppDelegate.");
@@ -237,43 +258,48 @@ const withQuantumMetricIosAppDelegate: ConfigPlugin<QuantumMetricPluginProps> = 
   } else {
     // Step 2A - Importing for Objective-C
     if (!appDelegate.includes("#import <QMNative/QMNative.h>") &&
-        !appDelegate.includes('#import "QMNative.h"')) {
+      !appDelegate.includes('#import "QMNative.h"')) {
       // For v1.1.71 or higher, use <QMNative/QMNative.h>
+      const useModernHeader = isVersionGreaterOrEqual(libraryVersion || "", "1.1.71");
+      const headerImport = useModernHeader
+        ? '#import <QMNative/QMNative.h>'
+        : '#import "QMNative.h"';
+
       appDelegate = appDelegate.replace(
         /#import "AppDelegate.h"/,
-        '#import "AppDelegate.h"\n#import <QMNative/QMNative.h>'
+        `#import "AppDelegate.h"\n${headerImport}`
       );
     }
-    
+
     // Step 2B - Initialization for Objective-C
     if (!appDelegate.includes("[QMNative initializeWithSubscription:")) {
       // Create initialization code according to documentation
       let qmInitCode = `\n  // Initialize Quantum Metric\n  [QMNative initializeWithSubscription:@"${subscription}" uid:@"${uid}"];\n`;
-      
+
       // Optional: Browser Name
       if (browserName) {
         qmInitCode += `  [QMNative setBrowserString:@"${browserName}"];\n`;
       }
-      
+
       // Additional optional settings
       if (disableCrashReporting) {
         qmInitCode += `  [QMNative disableCrashReporting];\n`;
       }
-      
+
       if (enableTestMode) {
         qmInitCode += `  [[QMNative sharedInstance] enableTestConfig:YES];\n`;
       }
-      
+
       // Look for Expo style return pattern in Objective-C
       const expoReturnPattern = /return\s+\[\s*super\s+application\s*:\s*application\s+didFinishLaunchingWithOptions\s*:\s*launchOptions\s*\]\s*;/;
-      
+
       // First try to match Expo's return pattern
       if (expoReturnPattern.test(appDelegate)) {
         appDelegate = appDelegate.replace(
           expoReturnPattern,
           `${qmInitCode}  return [super application:application didFinishLaunchingWithOptions:launchOptions];`
         );
-      } 
+      }
       // Fall back to standard return pattern if Expo pattern not found
       else {
         appDelegate = appDelegate.replace(
@@ -283,7 +309,7 @@ const withQuantumMetricIosAppDelegate: ConfigPlugin<QuantumMetricPluginProps> = 
       }
     }
   }
-  
+
   config.modResults.contents = appDelegate;
   return config;
 });
@@ -395,7 +421,7 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (
   }
   config = withQuantumMetricIosLibrary(config, props);
   config = withQuantumMetricIosFramework(config, props);
-  config = withQuantumMetricIosLinkerFlags(config);
+  config = withQuantumMetricIosLinkerFlags(config, props);
   config = withQuantumMetricIosAppDelegate(config, props);
   config = withQuantumMetricAndroidLibrary(config, props);
   config = withQuantumMetricGradle(config);
