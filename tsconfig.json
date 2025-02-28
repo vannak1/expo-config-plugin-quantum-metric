@@ -1,0 +1,24 @@
+{
+  "extends": "expo-module-scripts/tsconfig.plugin",
+  "compilerOptions": {
+    "outDir": "./build",
+    "rootDir": "./src",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noImplicitThis": true,
+    "noImplicitReturns": true,
+    "alwaysStrict": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "./src"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/__tests__/*",
+    "build"
+  ]
+}
