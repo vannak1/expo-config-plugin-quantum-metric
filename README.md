@@ -2,7 +2,7 @@
 
 An Expo Config Plugin for integrating the Quantum Metric SDK into your React Native application.
 
-NOTE: I am not associated or work for Quantum Metric.  This implementation is just shared to save other developers some time.
+> **DISCLAIMER**: This package is not officially created, maintained, or supported by Quantum Metric. The author is not associated with Quantum Metric in any capacity. This implementation is shared to help other developers integrate the Quantum Metric SDK with Expo and React Native applications.
 
 ## Installation
 
@@ -16,6 +16,16 @@ yarn add expo-config-plugin-quantum-metric
 # Using expo
 expo install expo-config-plugin-quantum-metric
 ```
+
+You also need to install the React Native Quantum Metric library:
+
+```bash
+npm install react-native-quantum-metric-library
+# or
+yarn add react-native-quantum-metric-library
+```
+
+For React Native library usage and details, please consult the [react-native-quantum-metric-library](https://www.npmjs.com/package/react-native-quantum-metric-library) documentation.
 
 ## Requirements
 
@@ -40,8 +50,8 @@ Add the plugin to your Expo config with your Quantum Metric subscription and aut
           "browserName": "Optional Custom Browser Name",
           "enableTestMode": false,
           "disableCrashReporting": false,
-          "podVersion": "1.1.66",
-          "aarVersion": "1.1.71"
+          "podVersion": "1.1.71",
+          "aarVersion": "1.0.18"
         }
       ]
     ]
@@ -60,8 +70,8 @@ Add the plugin to your Expo config with your Quantum Metric subscription and aut
 | `browserName` | String | No | App Name | Custom browser name for better identification |
 | `enableTestMode` | Boolean | No | `false` | Whether to enable test mode configuration |
 | `disableCrashReporting` | Boolean | No | `false` | Whether to disable crash reporting |
-| `podVersion` | String | No | `"1.1.66"` | iOS SDK version (must be 1.1.66 or higher) |
-| `aarVersion` | String | No | `"1.1.71"` | Android SDK version |
+| `podVersion` | String | No | `"1.1.71"` | iOS SDK version (must be 1.1.66 or higher) |
+| `aarVersion` | String | No | `"1.0.18"` | Android SDK version (must be 1.0.18 or higher) |
 
 ## Security Best Practices
 
@@ -117,6 +127,15 @@ The plugin automatically configures the following features:
 - Initializes the SDK in your MainApplication
 - Configures optional features like browser name and test mode
 
+## SDK Usage in Your Application
+
+After integration, you can use the Quantum Metric functionality through the React Native library:
+
+```javascript
+import QM from 'react-native-quantum-metric-library';
+
+For complete API documentation and advanced usage, please consult the [React Native Quantum Metric Library](https://www.npmjs.com/package/react-native-quantum-metric-library) documentation.
+
 ## Troubleshooting
 
 ### iOS
@@ -136,7 +155,6 @@ If you encounter issues, check the following:
 1. Verify you have the correct credentials from your Quantum Metric account team
 2. Make sure you're using the correct subscription ID and UID
 3. Check build logs for any error messages related to Quantum Metric
-4. Contact your Quantum Metric Support Engineer for SDK-specific issues
 
 ## License
 

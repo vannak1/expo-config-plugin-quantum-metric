@@ -1,21 +1,13 @@
 import {
   ConfigPlugin,
-  IOSConfig,
   AndroidConfig,
   withAppDelegate,
   withMainApplication,
-  withXcodeProject,
-  withDangerousMod,
   createRunOncePlugin,
-  withGradleProperties,
-  withAndroidManifest,
   withAppBuildGradle,
   withProjectBuildGradle,
   withPodfile,
 } from "@expo/config-plugins";
-import { ExpoConfig } from "@expo/config-types";
-import * as path from "path";
-import { existsSync } from "fs-extra";
 
 /**
  * Quantum Metric configuration properties.
@@ -37,7 +29,7 @@ interface QuantumMetricPluginProps {
 }
 
 const DEFAULT_POD_VERSION = "1.1.66";
-const DEFAULT_AAR_VERSION = "1.1.71";
+const DEFAULT_AAR_VERSION = "1.0.18";
 
 /**
  * Compare version strings
