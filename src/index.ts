@@ -389,7 +389,7 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (config, props
 };
 
 let pkg: { name: string; version?: string } = {
-  name: "expo-config-plugin-quantum-metric",
+  name: "expo-quantum-metric",
   version: "1.0.0"
 };
 

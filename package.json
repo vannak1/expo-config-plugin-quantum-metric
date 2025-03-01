@@ -1,6 +1,6 @@
 {
-  "name": "expo-config-plugin-quantum-metric",
-  "version": "1.0.4",
+  "name": "expo-quantum-metric",
+  "version": "1.0.0",
   "description": "Expo Config Plugin for React Native Quantum Metric SDK integration",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -35,13 +35,13 @@
     "@expo/config-plugins": "^9.0.16",
     "fs-extra": "^11.3.0"
   },
-  "homepage": "https://github.com/vannak1/expo-config-plugin-quantum-metric#readme",
+  "homepage": "https://github.com/vannak1/expo-quantum-metric#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vannak1/expo-config-plugin-quantum-metric.git"
+    "url": "git+https://github.com/vannak1/expo-quantum-metric.git"
   },
   "bugs": {
-    "url": "https://github.com/vannak1/expo-config-plugin-quantum-metric/issues"
+    "url": "https://github.com/vannak1/expo-quantum-metric/issues"
   },
   "files": [
     "build",
