@@ -1,6 +1,6 @@
 {
   "name": "expo-config-plugin-quantum-metric",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Expo Config Plugin for React Native Quantum Metric SDK integration",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -32,7 +32,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
-    "@expo/config-plugins": "^6.0.0",
+    "@expo/config-plugins": "^9.0.16",
     "fs-extra": "^11.3.0"
   },
   "homepage": "https://github.com/vannak1/expo-config-plugin-quantum-metric#readme",
