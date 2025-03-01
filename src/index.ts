@@ -65,7 +65,7 @@ const withQuantumMetricIosPod: ConfigPlugin<QuantumMetricPluginProps> = (config,
     // Check if the pod is already added
     if (!config.modResults.contents.includes("QuantumMetric-SDK")) {
       // Add pod to Podfile
-      const podLine = `  pod 'QuantumMetric-SDK', '${podVersion}', :source => '${podSource}'`;
+      const podLine = `  pod 'QuantumMetric-SDK', :source => '${podSource}', :tag => '${podVersion}'`;
       
       // Find target line to add the pod after
       const targetPattern = /target ['"].*['"] do/g;
@@ -370,11 +370,7 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (config, props
       "Quantum Metric iOS SDK version must be 1.1.66 or higher"
     );
   }
-  
-  // Log plugin setup information
-  console.log(`Configuring Quantum Metric SDK with subscription: ${pluginProps.subscription}`);
-  console.log(`Using Quantum Metric SDK versions - iOS: ${pluginProps.podVersion}, Android: ${pluginProps.aarVersion}`);
-  
+
   // Apply modifications in the correct order
   // iOS configurations
   config = withQuantumMetricIosPod(config, pluginProps);
