@@ -1,4 +1,4 @@
-# expo-config-plugin-quantum-metric
+# expo-quantum-metric
 
 An Expo Config Plugin for integrating the Quantum Metric SDK into your React Native application.
 
@@ -8,13 +8,13 @@ An Expo Config Plugin for integrating the Quantum Metric SDK into your React Nat
 
 ```bash
 # Using npm
-npm install expo-config-plugin-quantum-metric
+npm install expo-quantum-metric
 
 # Using yarn
-yarn add expo-config-plugin-quantum-metric
+yarn add expo-quantum-metric
 
 # Using expo
-expo install expo-config-plugin-quantum-metric
+expo install expo-quantum-metric
 ```
 
 You also need to install the React Native Quantum Metric library:
@@ -41,7 +41,7 @@ Add the plugin to your Expo config with your Quantum Metric subscription and aut
   "expo": {
     "plugins": [
       [
-        "expo-config-plugin-quantum-metric",
+        "expo-quantum-metric",
         {
           "subscription": "YOUR_SUBSCRIPTION_NAME",
           "uid": "YOUR_UNIQUE_SDK_UID",
@@ -83,7 +83,7 @@ export default {
   expo: {
     plugins: [
       [
-        'expo-config-plugin-quantum-metric',
+        'expo-quantum-metric',
         {
           subscription: process.env.QM_SUBSCRIPTION,
           uid: process.env.QM_UID,
