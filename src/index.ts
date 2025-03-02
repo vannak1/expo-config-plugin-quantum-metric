@@ -36,8 +36,8 @@ interface QuantumMetricPluginProps {
   aarVersion?: string;
 }
 
-const DEFAULT_POD_VERSION = "1.1.66";
-const DEFAULT_AAR_VERSION = "1.1.71";
+const DEFAULT_POD_VERSION = "1.1.71";
+const DEFAULT_AAR_VERSION = "1.0.18";
 
 /**
  * Compare version strings
@@ -177,30 +177,6 @@ ENV['QM_PASS'] = '${password}'
       console.log("Quantum Metric: Pod already in Podfile. Skipping addition.");
     }
 
-    return config;
-  });
-};
-
-/**
- * New mod: Update Xcode project build settings so that the framework search paths include the Quantum Metric SDK.
- */
-const withQuantumMetricXcodeProject: ConfigPlugin<QuantumMetricPluginProps> = (config, _props) => {
-  return withXcodeProject(config, (config) => {
-    const project = config.modResults;
-    // Loop through each build configuration and update FRAMEWORK_SEARCH_PATHS.
-    const buildConfigs = project.pbxXCBuildConfigurationSection();
-    for (const key in buildConfigs) {
-      if (
-        typeof buildConfigs[key] === 'object' &&
-        buildConfigs[key].buildSettings
-      ) {
-        const buildSettings = buildConfigs[key].buildSettings;
-        buildSettings['FRAMEWORK_SEARCH_PATHS'] = buildSettings['FRAMEWORK_SEARCH_PATHS'] || '$(inherited)';
-        if (!buildSettings['FRAMEWORK_SEARCH_PATHS'].includes('$(PODS_ROOT)/QuantumMetric-SDK')) {
-          buildSettings['FRAMEWORK_SEARCH_PATHS'] += ' "$(PODS_ROOT)/QuantumMetric-SDK"';
-        }
-      }
-    }
     return config;
   });
 };
@@ -357,7 +333,6 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (config, props
   // iOS modifications
   config = withQuantumMetricIosPod(config, pluginProps);
   config = withQuantumMetricIosAppDelegate(config, pluginProps);
-  config = withQuantumMetricXcodeProject(config, pluginProps);
 
   // Android modifications
   config = withQuantumMetricMavenRepo(config, pluginProps);
