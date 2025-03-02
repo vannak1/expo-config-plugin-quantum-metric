@@ -1,13 +1,21 @@
 import {
   ConfigPlugin,
+  IOSConfig,
   AndroidConfig,
   withAppDelegate,
   withMainApplication,
+  withXcodeProject,
+  withDangerousMod,
   createRunOncePlugin,
+  withGradleProperties,
+  withAndroidManifest,
   withAppBuildGradle,
   withProjectBuildGradle,
   withPodfile,
 } from "@expo/config-plugins";
+import { ExpoConfig } from "@expo/config-types";
+import * as path from "path";
+import { existsSync } from "fs-extra";
 
 /**
  * Quantum Metric configuration properties.
@@ -29,7 +37,7 @@ interface QuantumMetricPluginProps {
 }
 
 const DEFAULT_POD_VERSION = "1.1.66";
-const DEFAULT_AAR_VERSION = "1.0.18";
+const DEFAULT_AAR_VERSION = "1.1.71";
 
 /**
  * Compare version strings
@@ -48,47 +56,18 @@ const isVersionGreaterOrEqual = (version: string | undefined, compareWith: strin
 };
 
 /**
- * iOS – Add Quantum Metric pod to Podfile
+ * Create a build gradle properties config plugin for Quantum Metric credentials
  */
-const withQuantumMetricIosPod: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
-  const { username, password, podVersion = DEFAULT_POD_VERSION } = props;
-
-  if (!username || !password) {
-    throw new Error("Quantum Metric plugin requires both username and password properties for iOS integration");
-  }
-  
-
-  // Use withPodfile to modify the Podfile directly
-  return withPodfile(config, (config: any) => {
-    const podSource = `https://${username}:${password}@sdk.quantummetric.com/cocoapods/Quantum-SDK-iOS.git`;
-    
-    // Check if the pod is already added
-    if (!config.modResults.contents.includes("QuantumMetric-SDK")) {
-      // Add pod to Podfile
-      const podLine = `  pod 'QuantumMetric-SDK', :git => '${podSource}', :tag => '${podVersion}'`;
-      
-      // Find target line to add the pod after
-      const targetPattern = /target ['"].*['"] do/g;
-      const matches = config.modResults.contents.match(targetPattern);
-      
-      if (matches && matches.length > 0) {
-        // Add after the first target declaration
-        config.modResults.contents = config.modResults.contents.replace(
-          matches[0],
-          `${matches[0]}\n${podLine}`
-        );
-      } else {
-        // Fallback - add to the top of the file
-        config.modResults.contents = `${podLine}\n\n${config.modResults.contents}`;
-        console.warn("Quantum Metric: Could not find target declaration in Podfile. Placed pod at the top of the file.");
-      }
-    } else {
-      console.log("Quantum Metric: Pod already in Podfile. Skipping addition.");
-    }
-    
-    return config;
-  });
-};
+const withQuantumMetricGradleProps = AndroidConfig.BuildProperties.createBuildGradlePropsConfigPlugin<QuantumMetricPluginProps>([
+  {
+    propName: 'quantummetric.maven.username',
+    propValueGetter: (props) => props.username || '',
+  },
+  {
+    propName: 'quantummetric.maven.password',
+    propValueGetter: (props) => props.password || '',
+  },
+], 'withQuantumMetricGradleProps');
 
 /**
  * iOS – Modify AppDelegate to initialize Quantum Metric SDK.
@@ -188,6 +167,79 @@ const withQuantumMetricIosAppDelegate: ConfigPlugin<QuantumMetricPluginProps> = 
 });
 
 /**
+ * iOS – Add Quantum Metric pod to Podfile with credentials
+ */
+const withQuantumMetricIosPod: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
+  const { username, password, podVersion = DEFAULT_POD_VERSION } = props;
+
+  if (!username || !password) {
+    throw new Error("Quantum Metric plugin requires both username and password properties for iOS integration");
+  }
+
+  // Use withPodfile to modify the Podfile directly
+  return withPodfile(config, (config) => {
+    // Check if the pod is already added
+    if (!config.modResults.contents.includes("QuantumMetric-SDK")) {
+      // Define credentials directly in the Podfile using Ruby variables 
+      const credentialsSetup = `
+# Quantum Metric credentials
+ENV['QM_USER'] = '${username}'
+ENV['QM_PASS'] = '${password}'
+`;
+
+      // Define the pod line using the Ruby variables
+      const podLine = `  pod 'QuantumMetric-SDK', :git => "https://\#{ENV['QM_USER']}:\#{ENV['QM_PASS']}@sdk.quantummetric.com/cocoapods/Quantum-SDK-iOS.git", :tag => '${podVersion}'`;
+
+      // Find target line to add the pod after
+      const targetPattern = /target ['"].*['"] do/g;
+      const matches = config.modResults.contents.match(targetPattern);
+
+      // Check if Podfile already has the credentials section
+      if (!config.modResults.contents.includes("# Quantum Metric credentials")) {
+        // Add credentials at the top of the file
+        config.modResults.contents = `${credentialsSetup}\n${config.modResults.contents}`;
+      }
+
+      if (matches && matches.length > 0) {
+        // Add pod line after the first target declaration
+        config.modResults.contents = config.modResults.contents.replace(
+          matches[0],
+          `${matches[0]}\n${podLine}`
+        );
+      } else {
+        // Fallback - add pod line where appropriate
+        const podfileContent = config.modResults.contents;
+        const lines = podfileContent.split('\n');
+        let insertIndex = -1;
+
+        // Look for common insertion points
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].includes('platform :ios') || lines[i].includes('use_frameworks')) {
+            insertIndex = i + 1;
+            break;
+          }
+        }
+
+        if (insertIndex >= 0) {
+          lines.splice(insertIndex, 0, podLine);
+          config.modResults.contents = lines.join('\n');
+        } else {
+          // If no suitable location found, add to the end of the file
+          config.modResults.contents += `\n${podLine}\n`;
+        }
+        console.warn("Quantum Metric: Could not find target declaration in Podfile. Placed pod at a suitable location.");
+      }
+    } else {
+      console.log("Quantum Metric: Pod already in Podfile. Skipping addition.");
+    }
+
+    return config;
+  });
+};
+
+// The linker flag function has been removed as versions 1.1.66 and above don't require it
+
+/**
  * Android – Add Maven repository for Quantum Metric SDK
  */
 const withQuantumMetricMavenRepo: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
@@ -212,7 +264,7 @@ const withQuantumMetricMavenRepo: ConfigPlugin<QuantumMetricPluginProps> = (conf
                 password "\${quantummetric.maven.password}"
             }
         }`;
-      
+
       const pattern = /allprojects\s*\{\s*repositories\s*\{/g;
       if (pattern.test(config.modResults.contents)) {
         config.modResults.contents = config.modResults.contents.replace(
@@ -227,7 +279,7 @@ const withQuantumMetricMavenRepo: ConfigPlugin<QuantumMetricPluginProps> = (conf
         );
       }
     }
-    
+
     return config;
   });
 };
@@ -237,48 +289,34 @@ const withQuantumMetricMavenRepo: ConfigPlugin<QuantumMetricPluginProps> = (conf
  */
 const withQuantumMetricGradle: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
   const { aarVersion = DEFAULT_AAR_VERSION } = props;
-  
+
   return withAppBuildGradle(config, (config) => {
     // Check if quantum metric dependency is already added
     if (!config.modResults.contents.includes("com.quantummetric:")) {
       // Add the dependency by modifying the contents directly
       const dependency = `    implementation 'com.quantummetric:quantummetric-android:${aarVersion}'`;
-      
+
       // Find the dependencies block and add our dependency
       config.modResults.contents = config.modResults.contents.replace(
         /dependencies\s*\{/,
         `dependencies {\n${dependency}`
       );
     }
-    
+
     return config;
   });
 };
-
-/**
- * Create a build gradle properties config plugin for Quantum Metric credentials
- */
-const withQuantumMetricGradleProps = AndroidConfig.BuildProperties.createBuildGradlePropsConfigPlugin<QuantumMetricPluginProps>([
-  {
-    propName: 'quantummetric.maven.username',
-    propValueGetter: (props) => props.username || '',
-  },
-  {
-    propName: 'quantummetric.maven.password',
-    propValueGetter: (props) => props.password || '',
-  },
-], 'withQuantumMetricGradleProps');
 
 /**
  * Android – Modify MainApplication to initialize Quantum Metric SDK
  */
 const withQuantumMetricMainApplication: ConfigPlugin<QuantumMetricPluginProps> = (config, props) => {
   const { subscription, uid, browserName, enableTestMode } = props;
-  
+
   return withMainApplication(config, (config) => {
     let mainApplication = config.modResults.contents;
     const isKotlin = mainApplication.includes("fun onCreate(");
-    
+
     if (isKotlin) {
       // Add import if not present
       if (!mainApplication.includes("import com.quantummetric.QuantumMetric")) {
@@ -287,21 +325,21 @@ const withQuantumMetricMainApplication: ConfigPlugin<QuantumMetricPluginProps> =
           `package $1\n\nimport com.quantummetric.QuantumMetric`
         );
       }
-      
+
       // Add initialization if not present
       if (!mainApplication.includes("QuantumMetric.initialize")) {
         let qmInitCode = `\n    // Initialize Quantum Metric\n    QuantumMetric\n        .initialize("${subscription}", "${uid}", this)`;
-        
+
         if (browserName) {
           qmInitCode += `\n        .withBrowserName("${browserName}")`;
         }
-        
+
         if (enableTestMode) {
           qmInitCode += `\n        .enableTestMode()`;
         }
-        
+
         qmInitCode += `\n        .start()\n`;
-        
+
         const onCreateRegex = /(super\.onCreate\(\))/;
         mainApplication = mainApplication.replace(onCreateRegex, `$1\n${qmInitCode}`);
       }
@@ -313,26 +351,26 @@ const withQuantumMetricMainApplication: ConfigPlugin<QuantumMetricPluginProps> =
           `package $1;\n\nimport com.quantummetric.QuantumMetric;`
         );
       }
-      
+
       // Add initialization if not present
       if (!mainApplication.includes("QuantumMetric.initialize")) {
         let qmInitCode = `\n    // Initialize Quantum Metric\n    QuantumMetric\n            .initialize("${subscription}", "${uid}", this)`;
-        
+
         if (browserName) {
           qmInitCode += `\n            .withBrowserName("${browserName}")`;
         }
-        
+
         if (enableTestMode) {
           qmInitCode += `\n            .enableTestMode()`;
         }
-        
+
         qmInitCode += `\n            .start();\n`;
-        
+
         const onCreateRegex = /(super\.onCreate\(\);)(\s*(?:\/\/.*)?)/;
         mainApplication = mainApplication.replace(onCreateRegex, `$1$2${qmInitCode}`);
       }
     }
-    
+
     config.modResults.contents = mainApplication;
     return config;
   });
@@ -348,21 +386,21 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (config, props
     podVersion: props.podVersion || DEFAULT_POD_VERSION,
     aarVersion: props.aarVersion || DEFAULT_AAR_VERSION
   };
-  
+
   // Validate required parameters
   if (!pluginProps.subscription || !pluginProps.uid) {
     throw new Error(
       "Quantum Metric plugin requires both subscription and uid properties"
     );
   }
-  
+
   // Validate authentication
   if (!pluginProps.username || !pluginProps.password) {
     throw new Error(
       "Quantum Metric plugin requires username and password properties for authentication"
     );
   }
-  
+
   // Validate minimum iOS version
   const podVersion = pluginProps.podVersion;
   if (podVersion && !isVersionGreaterOrEqual(podVersion, '1.1.66')) {
@@ -371,21 +409,25 @@ const withQuantumMetric: ConfigPlugin<QuantumMetricPluginProps> = (config, props
     );
   }
 
+  // Log plugin setup information
+  console.log(`Configuring Quantum Metric SDK with subscription: ${pluginProps.subscription}`);
+  console.log(`Using Quantum Metric SDK versions - iOS: ${pluginProps.podVersion}, Android: ${pluginProps.aarVersion}`);
+
   // Apply modifications in the correct order
   // iOS configurations
   config = withQuantumMetricIosPod(config, pluginProps);
   config = withQuantumMetricIosAppDelegate(config, pluginProps);
-  
+
   // Android configurations
   config = withQuantumMetricMavenRepo(config, pluginProps);
   config = withQuantumMetricGradle(config, pluginProps);
   config = withQuantumMetricMainApplication(config, pluginProps);
-  
+
   return config;
 };
 
 let pkg: { name: string; version?: string } = {
-  name: "expo-quantum-metric",
+  name: "expo-config-plugin-quantum-metric",
   version: "1.0.0"
 };
 
@@ -393,6 +435,7 @@ try {
   pkg = require("../package.json");
 } catch {
   // Fallback if package.json cannot be loaded
+  console.log("Note: Using default package information as package.json could not be loaded.");
 }
 
 export default createRunOncePlugin(
