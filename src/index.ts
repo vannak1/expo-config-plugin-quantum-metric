@@ -65,7 +65,7 @@ const withQuantumMetricIosPod: ConfigPlugin<QuantumMetricPluginProps> = (config,
     // Check if the pod is already added
     if (!config.modResults.contents.includes("QuantumMetric-SDK")) {
       // Add pod to Podfile
-      const podLine = `  pod 'QuantumMetric-SDK', :source => '${podSource}', :tag => '${podVersion}'`;
+      const podLine = `  pod 'QuantumMetric-SDK', :git => '${podSource}', :tag => '${podVersion}'`;
       
       // Find target line to add the pod after
       const targetPattern = /target ['"].*['"] do/g;
